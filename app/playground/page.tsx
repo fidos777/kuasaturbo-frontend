@@ -48,7 +48,7 @@ export default function PlaygroundPage() {
         task: selectedTask,
         style: selectedStyle,
         prompt: prompt || undefined,
-        image: uploadedImage || undefined,
+        image: undefined, // TODO: Add base64 conversion
       });
 
       // Clear worker animation
@@ -130,7 +130,7 @@ export default function PlaygroundPage() {
               type="text"
               placeholder="e.g., Create a vibrant thumbnail for car sale promo..."
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={setPrompt}
               disabled={isProcessing}
             />
             <p className="text-xs text-slate-500 mt-2">
