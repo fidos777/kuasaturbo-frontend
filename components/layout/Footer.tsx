@@ -82,7 +82,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
-          © 2025 KuasaTurbo. SME Cloud AI Empire.
+          © 2025 KuasaTurbo. SME Cloud Sdn Bhd.
         </div>
       </div>
     </footer>
