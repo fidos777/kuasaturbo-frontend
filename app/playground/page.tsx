@@ -8,6 +8,7 @@ import StyleSelector from "@/components/playground/StyleSelector";
 import ImageUploader from "@/components/playground/ImageUploader";
 import GenerateButton from "@/components/playground/GenerateButton";
 import OutputDisplay from "@/components/playground/OutputDisplay";
+import PersonaSelector from "@/components/playground/PersonaSelector";
 import WorkerAnimation from "@/components/playground/WorkerAnimation";
 import { generateCreative } from "@/lib/api";
 import type { PlaygroundState, GenerateCreativeResponse } from "@/lib/types";
@@ -32,6 +33,7 @@ export default function PlaygroundPage() {
   const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [selectedPersona, setSelectedPersona] = useState<string>("default_creator");
 
   // Execution state
   const [state, setState] = useState<PlaygroundState>("idle");
@@ -66,6 +68,7 @@ export default function PlaygroundPage() {
         style: selectedStyle,
         prompt: prompt || undefined,
         image: imageBase64,
+        persona_id: selectedPersona,
       });
 
       // Clear worker animation
@@ -147,10 +150,22 @@ export default function PlaygroundPage() {
               />
             </Card>
 
+
+            {/* Persona Selection */}
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                3. Choose Persona
+              </h2>
+              <PersonaSelector
+                selectedPersona={selectedPersona}
+                onSelectPersona={setSelectedPersona}
+                disabled={isProcessing}
+              />
+            </Card>
             {/* Prompt Input */}
             <Card>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                3. Add Prompt (Optional)
+                4. Add Prompt (Optional)
               </h2>
               <Input
                 placeholder="e.g., Create a vibrant thumbnail for car sale promo..."
@@ -166,7 +181,7 @@ export default function PlaygroundPage() {
             {/* Image Upload */}
             <Card>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                4. Upload Image (Optional)
+                5. Upload Image (Optional)
               </h2>
               <ImageUploader
                 uploadedImage={uploadedImage}

@@ -46,3 +46,11 @@ export const VERTICALS = [
     status: 'coming_soon',
   },
 ];
+
+export const PERSONAS = [
+  { id: 'default_creator', label: 'Default Creator', description: 'Balanced, professional output' },
+  { id: 'zeyti_bbnu_creator', label: 'Zeyti (BBNU Style)', description: 'Malaysian SME friendly tone' },
+  { id: 'tiktok_energy', label: 'TikTok Energy', description: 'High energy, viral-ready content' },
+  { id: 'facebook_carousel', label: 'Facebook Carousel', description: 'Optimized for FB engagement' },
+  { id: 'premium_luxury', label: 'Premium Luxury', description: 'Sophisticated, high-end feel' },
+];
