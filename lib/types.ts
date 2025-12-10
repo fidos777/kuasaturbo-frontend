@@ -25,7 +25,8 @@ export interface GenerateCreativeParams {
   task: string;
   style: string;
   prompt?: string;
-  image?: string;  // String (base64), not File
+  image?: string;
+  persona_id?: string;  // String (base64), not File
   apiKey?: string;
 }
 
