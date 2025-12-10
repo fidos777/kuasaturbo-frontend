@@ -12,6 +12,20 @@ import WorkerAnimation from "@/components/playground/WorkerAnimation";
 import { generateCreative } from "@/lib/api";
 import type { PlaygroundState, GenerateCreativeResponse } from "@/lib/types";
 
+// Helper: Convert File to Base64 string (client-side only)
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PlaygroundPage() {
   // Form state
   const [selectedTask, setSelectedTask] = useState<string>("");
@@ -43,12 +57,15 @@ export default function PlaygroundPage() {
     }, 600);
 
     try {
+      // Convert image to base64 if uploaded
+      const imageBase64 = uploadedImage ? await fileToBase64(uploadedImage) : undefined;
+
       // Call API
       const response = await generateCreative({
         task: selectedTask,
         style: selectedStyle,
         prompt: prompt || undefined,
-        image: undefined, // TODO: Add base64 conversion
+        image: imageBase64,
       });
 
       // Clear worker animation
@@ -65,7 +82,6 @@ export default function PlaygroundPage() {
   };
 
   const handleGenerateAnother = () => {
-    // Reset to idle state but keep form values
     setState("idle");
     setResult(null);
     setError(null);
@@ -73,7 +89,6 @@ export default function PlaygroundPage() {
   };
 
   const handleReset = () => {
-    // Full reset
     setSelectedTask("");
     setSelectedStyle("");
     setPrompt("");
@@ -85,124 +100,131 @@ export default function PlaygroundPage() {
   };
 
   const isProcessing = state === "processing";
-  const isComplete = state === "complete";
-  const hasError = state === "error";
+  const canGenerate = selectedTask && selectedStyle && !isProcessing;
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">Creative Playground</h1>
-        <p className="text-xl text-slate-600">
-          Try KuasaTurbo creative tasks. No API key required for demo.
-        </p>
-        {!process.env.NEXT_PUBLIC_API_URL && (
-          <p className="text-sm text-yellow-600 mt-2">
-            Running in mock mode (NEXT_PUBLIC_API_URL not configured)
+    <main className="min-h-screen bg-slate-50 py-12">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-slate-900 mb-3">
+            Creative Playground
+          </h1>
+          <p className="text-slate-600 text-lg">
+            Try KuasaTurbo creative tasks. No API key required for demo.
           </p>
-        )}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Left Panel - Inputs */}
-        <div className="space-y-6">
-          <Card>
-            <h2 className="text-2xl font-bold mb-4">1. Select Task</h2>
-            <TaskSelector
-              selectedTask={selectedTask}
-              onSelectTask={setSelectedTask}
-              disabled={isProcessing}
-            />
-          </Card>
-
-          <Card>
-            <h2 className="text-2xl font-bold mb-4">2. Choose Style</h2>
-            <StyleSelector
-              selectedStyle={selectedStyle}
-              onSelectStyle={setSelectedStyle}
-              disabled={isProcessing}
-            />
-          </Card>
-
-          <Card>
-            <h2 className="text-2xl font-bold mb-4">3. Add Prompt (Optional)</h2>
-            <Input
-              name="prompt"
-              type="text"
-              placeholder="e.g., Create a vibrant thumbnail for car sale promo..."
-              value={prompt}
-              onChange={setPrompt}
-              disabled={isProcessing}
-            />
-            <p className="text-xs text-slate-500 mt-2">
-              Leave empty for default prompt based on task and style
+          {!process.env.NEXT_PUBLIC_API_URL && (
+            <p className="text-orange-500 text-sm mt-2">
+              Running in mock mode (NEXT_PUBLIC_API_URL not configured)
             </p>
-          </Card>
+          )}
+        </div>
 
-          <Card>
-            <h2 className="text-2xl font-bold mb-4">4. Upload Image (Optional)</h2>
-            <ImageUploader
-              uploadedImage={uploadedImage}
-              onUpload={setUploadedImage}
-              disabled={isProcessing}
-            />
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Input */}
+          <div className="space-y-6">
+            {/* Task Selection */}
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                1. Select Task
+              </h2>
+              <TaskSelector
+                selectedTask={selectedTask}
+                onSelectTask={setSelectedTask}
+                disabled={isProcessing}
+              />
+            </Card>
 
-          <div className="flex gap-3">
+            {/* Style Selection */}
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                2. Choose Style
+              </h2>
+              <StyleSelector
+                selectedStyle={selectedStyle}
+                onSelectStyle={setSelectedStyle}
+                disabled={isProcessing}
+              />
+            </Card>
+
+            {/* Prompt Input */}
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                3. Add Prompt (Optional)
+              </h2>
+              <Input
+                placeholder="e.g., Create a vibrant thumbnail for car sale promo..."
+                value={prompt}
+                onChange={setPrompt}
+                disabled={isProcessing}
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Leave empty for default prompt based on task and style
+              </p>
+            </Card>
+
+            {/* Image Upload */}
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                4. Upload Image (Optional)
+              </h2>
+              <ImageUploader
+                uploadedImage={uploadedImage}
+                onUpload={setUploadedImage}
+                disabled={isProcessing}
+              />
+            </Card>
+
+            {/* Generate Button */}
             <GenerateButton
-              disabled={!selectedTask || !selectedStyle || isProcessing}
-              isGenerating={isProcessing}
               onClick={handleGenerate}
+              disabled={!canGenerate}
+              isGenerating={isProcessing}
             />
-            {(isComplete || hasError) && (
-              <button
-                onClick={handleReset}
-                className="px-6 py-3 rounded-lg font-medium transition-colors bg-slate-200 text-slate-700 hover:bg-slate-300"
-              >
-                Reset All
-              </button>
-            )}
+          </div>
+
+          {/* Right Column - Output */}
+          <div>
+            <Card className="h-full min-h-[500px]">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                Output
+              </h2>
+
+              {/* Worker Animation */}
+              {isProcessing && (
+                <WorkerAnimation currentStep={currentWorker} />
+              )}
+
+              {/* Error Display */}
+              {state === "error" && error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-red-700 font-medium">Error</p>
+                  <p className="text-red-600 text-sm">{error}</p>
+                  <button
+                    onClick={handleGenerateAnother}
+                    className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {/* Output Display */}
+              {state === "complete" && result && (
+                <OutputDisplay output={result} onGenerateAnother={handleReset} />
+              )}
+
+              {/* Idle State */}
+              {state === "idle" && !result && (
+                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                  <span className="text-6xl mb-4">🎨</span>
+                  <p>Select task and style, then click Generate to see results.</p>
+                </div>
+              )}
+            </Card>
           </div>
         </div>
-
-        {/* Right Panel - Output */}
-        <div>
-          <Card className="sticky top-4">
-            <h2 className="text-2xl font-bold mb-4">Output</h2>
-            
-            {state === "idle" && (
-              <div className="text-center py-12 text-slate-400">
-                <div className="text-4xl mb-4">🎨</div>
-                <p>Select task and style, then click Generate to see results.</p>
-              </div>
-            )}
-
-            {isProcessing && (
-              <WorkerAnimation currentStep={currentWorker} />
-            )}
-
-            {isComplete && result && (
-              <OutputDisplay
-                output={result}
-                onGenerateAnother={handleGenerateAnother}
-              />
-            )}
-
-            {hasError && (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4 text-red-500">⚠️</div>
-                <p className="text-red-600 font-medium mb-4">Generation Failed</p>
-                <p className="text-sm text-slate-600 mb-6">{error}</p>
-                <button
-                  onClick={handleGenerateAnother}
-                  className="px-6 py-3 rounded-lg font-medium bg-primary text-white hover:bg-primary/90"
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
-          </Card>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
