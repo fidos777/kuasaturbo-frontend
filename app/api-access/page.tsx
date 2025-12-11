@@ -1,8 +1,54 @@
+"use client";
+
+import { useState } from "react";
 import Card from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
-import Input from "@/components/shared/Input";
 
 export default function ApiAccessPage() {
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus("submitting");
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch("https://formspree.io/f/mrbnozeq", {
+        method: "POST",
+        body: formData,
+        headers: { Accept: "application/json" },
+      });
+
+      if (response.ok) {
+        setStatus("success");
+        form.reset();
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="text-6xl mb-6">✅</div>
+          <h1 className="text-4xl font-bold mb-4">Application Submitted!</h1>
+          <p className="text-xl text-slate-600 mb-8">
+            We'll review your application and send your API key within 24 hours.
+          </p>
+          <Button variant="primary" onClick={() => setStatus("idle")}>
+            Submit Another
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-2xl mx-auto">
@@ -12,46 +58,84 @@ export default function ApiAccessPage() {
         </p>
 
         <Card className="mb-8">
-          <form className="space-y-6">
-            <Input
-              label="Full Name"
-              type="text"
-              placeholder="Ahmad bin Abdullah"
-              required
-            />
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="ahmad@company.com"
-              required
-            />
-            <Input
-              label="Company Name"
-              type="text"
-              placeholder="Your Company Sdn Bhd"
-              required
-            />
-            <Input
-              label="Phone Number"
-              type="tel"
-              placeholder="+60123456789"
-              required
-            />
-            
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Ahmad bin Abdullah"
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                placeholder="ahmad@company.com"
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Company Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="company"
+                placeholder="Your Company Sdn Bhd"
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="+60123456789"
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Use Case
               </label>
               <textarea
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                name="usecase"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 rows={4}
                 placeholder="Tell us how you plan to use KuasaTurbo..."
-                required
               />
             </div>
 
-            <Button type="submit" variant="primary" className="w-full">
-              Request API Access
+            {status === "error" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                Something went wrong. Please try again.
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              disabled={status === "submitting"}
+            >
+              {status === "submitting" ? "Submitting..." : "Request API Access"}
             </Button>
           </form>
         </Card>
