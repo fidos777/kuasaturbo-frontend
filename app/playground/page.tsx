@@ -66,10 +66,10 @@ export default function PlaygroundPage() {
 
   const handleCreativeReset = () => { setCreativeState("idle"); setCreativeResult(null); setCurrentWorker(0); };
 
-  const handleSolarSubmit = async (data: { monthlyBill: number; state: string; buildingType: 'residential' | 'commercial' | 'industrial' }) => {
+  const handleSolarSubmit = async (data: { monthlyBill: number; state: string; buildingType: 'residential' | 'commercial' | 'industrial'; useAI: boolean }) => {
     setSolarState('loading');
     try {
-      const res = await fetch('/api/solar/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const res = await fetch('/api/solar/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, useAI: data.useAI || false }) });
       const result = await res.json();
       if (result.status === 'success') { setSolarReport(result.report); setSolarState('complete'); }
       else throw new Error(result.error);

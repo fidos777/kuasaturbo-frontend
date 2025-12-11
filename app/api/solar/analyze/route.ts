@@ -37,13 +37,13 @@ function calculate(monthlyBill: number, state: string, buildingType: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { monthlyBill, state, buildingType } = await request.json();
+    const { monthlyBill, state, buildingType, useAI } = await request.json();
     if (!monthlyBill || monthlyBill <= 0) return NextResponse.json({ status: 'error', error: 'Invalid bill' }, { status: 400 });
     
     const calc = calculate(monthlyBill, state, buildingType);
     let aiRec = '';
     
-    if (process.env.OPENAI_API_KEY) {
+    if (process.env.OPENAI_API_KEY && useAI) {
       try {
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         const prompt = `You are a Malaysian solar consultant. Write 3 paragraphs in Bahasa Malaysia (under 120 words) for: ${state}, ${buildingType}, RM${calc.currentMonthlyBill}/month bill. System: ${calc.systemSizeKwp}kWp, ${calc.panelCount} panels. Savings: RM${calc.monthlySavings}/month, payback ${calc.paybackYears} years, 25-year savings RM${calc.twentyFiveYearSavings.toLocaleString()}. Be persuasive, mention NEM 3.0, end with call to book survey.`;
