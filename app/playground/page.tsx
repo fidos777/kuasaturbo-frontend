@@ -1,132 +1,363 @@
 "use client";
 
-import { useState } from "react";
-import Card from "@/components/shared/Card";
-import PlaygroundTabs from "@/components/playground/PlaygroundTabs";
-import TaskSelector from "@/components/playground/TaskSelector";
-import StyleSelector from "@/components/playground/StyleSelector";
-import PersonaSelector from "@/components/playground/PersonaSelector";
-import ImageUploader from "@/components/playground/ImageUploader";
-import GenerateButton from "@/components/playground/GenerateButton";
-import OutputDisplay from "@/components/playground/OutputDisplay";
-import WorkerAnimation from "@/components/playground/WorkerAnimation";
-import SolarForm from "@/components/solar/SolarForm";
-import SolarReportDisplay from "@/components/solar/SolarReport";
-import SolarLoading from "@/components/solar/SolarLoading";
-import { generateCreative } from "@/lib/api";
-import type { PlaygroundState, GenerateCreativeResponse } from "@/lib/types";
-import type { SolarReport } from "@/lib/solar/types";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { WIDGETS, getWidgetById, getCreditLabel, type Widget, type WidgetField } from "@/lib/widgets";
+import { trackEvent } from "@/lib/track";
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => { const r = reader.result as string; resolve(r.split(",")[1] || r); };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+type TabType = "ops" | "sales" | "creative";
+
+function TabButton({ 
+  active, 
+  onClick, 
+  children,
+  color 
+}: { 
+  active: boolean; 
+  onClick: () => void; 
+  children: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-11 px-5 rounded-xl text-sm font-semibold transition ${
+        active 
+          ? `bg-white text-black shadow-sm border-b-2 ${color}` 
+          : "text-black/60 hover:text-black hover:bg-black/5"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function WidgetCard({ 
+  widget, 
+  selected, 
+  onSelect 
+}: { 
+  widget: Widget; 
+  selected: boolean; 
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full text-left p-4 rounded-xl border transition ${
+        selected 
+          ? "border-[#FE4800] bg-orange-50" 
+          : "border-black/10 bg-white hover:bg-black/[0.02]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-black">{widget.label}</div>
+          <div className="mt-1 text-xs text-black/60">{widget.description}</div>
+        </div>
+        <span className="shrink-0 rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-black/70">
+          {getCreditLabel(widget.credits)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function DynamicField({ field, value, onChange }: { 
+  field: WidgetField; 
+  value: string; 
+  onChange: (val: string) => void;
+}) {
+  const baseClass = "w-full rounded-xl border border-black/10 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FE4800]/20 focus:border-[#FE4800]";
+  
+  switch (field.type) {
+    case "textarea":
+      return (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          rows={4}
+          className={baseClass}
+        />
+      );
+    case "select":
+      return (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={baseClass}
+        >
+          <option value="">Pilih...</option>
+          {field.options?.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    case "number":
+      return (
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          className={baseClass}
+        />
+      );
+    case "date":
+      return (
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={baseClass}
+        />
+      );
+    case "file":
+      return (
+        <div className={`${baseClass} bg-black/[0.02]`}>
+          <input
+            type="file"
+            onChange={(e) => onChange(e.target.files?.[0]?.name || "")}
+            className="w-full text-sm"
+          />
+        </div>
+      );
+    default:
+      return (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          className={baseClass}
+        />
+      );
+  }
 }
 
 export default function PlaygroundPage() {
-  const [activeTab, setActiveTab] = useState<'creative' | 'solar'>('solar');
+  const searchParams = useSearchParams();
+  const workParam = searchParams.get("work");
   
-  // Creative state
-  const [selectedTask, setSelectedTask] = useState("");
-  const [selectedStyle, setSelectedStyle] = useState("");
-  const [selectedPersona, setSelectedPersona] = useState("default_creator");
-  const [prompt, setPrompt] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-  const [creativeState, setCreativeState] = useState<PlaygroundState>("idle");
-  const [currentWorker, setCurrentWorker] = useState(0);
-  const [creativeResult, setCreativeResult] = useState<GenerateCreativeResponse | null>(null);
-  
-  // Solar state
-  const [solarState, setSolarState] = useState<'idle' | 'loading' | 'complete'>('idle');
-  const [solarReport, setSolarReport] = useState<SolarReport | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("ops");
+  const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [output, setOutput] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const isProcessing = creativeState === "processing";
-  const canGenerate = selectedTask && selectedStyle && !isProcessing;
-
-  const handleCreativeGenerate = async () => {
-    if (!canGenerate) return;
-    setCreativeState("processing");
-    setCurrentWorker(0);
-    const interval = setInterval(() => setCurrentWorker((p) => (p < 3 ? p + 1 : p)), 800);
-    try {
-      const imageBase64 = uploadedImage ? await fileToBase64(uploadedImage) : undefined;
-      const response = await generateCreative({ task: selectedTask, style: selectedStyle, prompt: prompt || undefined, image: imageBase64, persona_id: selectedPersona });
-      clearInterval(interval);
-      setCreativeResult(response);
-      setCreativeState("complete");
-    } catch (error) {
-      clearInterval(interval);
-      console.error(error);
-      setCreativeState("idle");
+  // Handle ?work= param
+  useEffect(() => {
+    if (workParam) {
+      const widget = getWidgetById(workParam);
+      if (widget) {
+        setSelectedWidget(widget);
+        // Set tab based on widget category
+        if (workParam.startsWith("ops.")) setActiveTab("ops");
+        else if (workParam.startsWith("sales.")) setActiveTab("sales");
+        else if (workParam.startsWith("creative.")) setActiveTab("creative");
+        
+        trackEvent("work_start", { widget_id: workParam, source: "deeplink" });
+      }
     }
+  }, [workParam]);
+
+  const currentWidgets = useMemo(() => {
+    return WIDGETS[activeTab] || [];
+  }, [activeTab]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSelectedWidget(null);
+    setFormData({});
+    setOutput("");
+    trackEvent("tab_view", { tab });
   };
 
-  const handleCreativeReset = () => { setCreativeState("idle"); setCreativeResult(null); setCurrentWorker(0); };
-
-  const handleSolarSubmit = async (data: { monthlyBill: number; state: string; buildingType: 'residential' | 'commercial' | 'industrial'; useAI: boolean }) => {
-    setSolarState('loading');
-    try {
-      const res = await fetch('/api/solar/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, useAI: data.useAI || false }) });
-      const result = await res.json();
-      if (result.status === 'success') { setSolarReport(result.report); setSolarState('complete'); }
-      else throw new Error(result.error);
-    } catch (e) { console.error(e); alert('Gagal menjana laporan'); setSolarState('idle'); }
+  const handleWidgetSelect = (widget: Widget) => {
+    setSelectedWidget(widget);
+    setFormData({});
+    setOutput("");
+    trackEvent("work_start", { widget_id: widget.id, category: activeTab });
   };
 
-  const handleSolarReset = () => { setSolarState('idle'); setSolarReport(null); };
+  const handleFieldChange = (fieldName: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedWidget) return;
+    
+    setIsGenerating(true);
+    trackEvent("work_run", { widget_id: selectedWidget.id, category: activeTab });
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Generate mock output based on widget type
+    const mockOutputs: Record<string, string> = {
+      "ops.expense_categorize.v1": `📋 Expense Categorized\n\nKategori: Perbelanjaan Perniagaan\nJumlah: RM ${formData.amount || "0"}\nNota: ${formData.note || "Tiada nota"}\n\n✅ Sedia untuk report`,
+      "ops.daily_sales_log.v1": `📊 Daily Log Recorded\n\nTarikh: ${formData.date || "Hari ini"}\nJumlah: RM ${formData.amount || "0"}\nNota: ${formData.note || "Tiada nota"}\n\n✅ Log disimpan`,
+      "ops.meeting_actionlist.v1": `📝 Action Items\n\n1. [ ] Follow up dengan client\n2. [ ] Prepare proposal draft\n3. [ ] Schedule next meeting\n\nPIC: ${formData.participants || "TBD"}\nDue: End of week`,
+      "ops.shift_handover.v1": `🔄 Shift Handover Summary\n\n✅ Completed:\n- Customer inquiries handled\n- Inventory checked\n\n⏳ Pending:\n${formData.pending_items || "- Tiada pending items"}\n\n⚠️ Notes:\n${formData.shift_info || "Tiada nota"}`,
+      "sales.follow_up_draft.v1": `💬 Follow-up Draft (${formData.tone || "Neutral"})\n\nHi [Nama],\n\nTerima kasih atas masa anda semalam. Saya nak follow up berkenaan ${formData.context || "perbincangan kita"}.\n\nBoleh kita schedule call minggu ni?\n\nBest regards`,
+      "sales.proposal_draft.v1": `📄 Proposal Draft\n\n${formData.business_type || "Business"} - ${formData.product || "Product/Service"}\n\nAnggaran: ${formData.price_estimate || "TBD"}\n\n[Sections to add: Scope, Timeline, Terms]`,
+      "sales.objection_reply.v1": `💡 Objection Response\n\nCustomer: "${formData.objection || "..."}"\n\nResponse:\nSaya faham concern tu. Untuk ${formData.product_context || "produk kami"}, sebenarnya...\n\n[Continue with value proposition]`,
+      "creative.thumbnail.v1": `🎨 Thumbnail Concept\n\nTitle: ${formData.title || "..."}\nStyle: ${formData.style || "modern"}\n\nLayout:\n- Bold text center\n- Contrasting background\n- Clear CTA element`,
+    };
+
+    setOutput(mockOutputs[selectedWidget.id] || "Draft generated. Review and edit as needed.");
+    setIsGenerating(false);
+  };
+
+  const handleSaveDraft = () => {
+    if (!selectedWidget) return;
+    trackEvent("work_save_draft", { widget_id: selectedWidget.id });
+    alert("Draft saved! (In production, this would save to your account)");
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">AI Microservices Playground</h1>
-        <p className="text-xl text-slate-600">KuasaTurbo OS untuk Malaysian SME</p>
+    <div className="min-h-screen bg-gradient-to-b from-white to-black/[0.02]">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-black">AI Playground</h1>
+          <p className="mt-2 text-black/60">
+            Pilih kerja, isi konteks, dapat draft. Simple.
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex rounded-xl border border-black/10 bg-black/[0.02] p-1 gap-1">
+            <TabButton
+              active={activeTab === "ops"}
+              onClick={() => handleTabChange("ops")}
+              color="border-blue-500"
+            >
+              🔧 Ops (Daily)
+            </TabButton>
+            <TabButton
+              active={activeTab === "sales"}
+              onClick={() => handleTabChange("sales")}
+              color="border-purple-500"
+            >
+              💼 Sales
+            </TabButton>
+            <TabButton
+              active={activeTab === "creative"}
+              onClick={() => handleTabChange("creative")}
+              color="border-orange-500"
+            >
+              🎨 Creative
+            </TabButton>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Widget List */}
+          <div className="lg:col-span-1">
+            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+              <h2 className="font-semibold text-black mb-4">Pilih Kerja</h2>
+              <div className="space-y-2">
+                {currentWidgets.map((widget) => (
+                  <WidgetCard
+                    key={widget.id}
+                    widget={widget}
+                    selected={selectedWidget?.id === widget.id}
+                    onSelect={() => handleWidgetSelect(widget)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Form + Output */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Context Form */}
+            <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+              <h2 className="font-semibold text-black mb-4">
+                {selectedWidget ? selectedWidget.label : "Pilih kerja untuk mula"}
+              </h2>
+              
+              {selectedWidget ? (
+                <div className="space-y-4">
+                  {selectedWidget.fields.map((field) => (
+                    <div key={field.name}>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      <DynamicField
+                        field={field}
+                        value={formData[field.name] || ""}
+                        onChange={(val) => handleFieldChange(field.name, val)}
+                      />
+                    </div>
+                  ))}
+                  
+                  <div className="pt-4 flex items-center justify-between">
+                    <span className="text-sm text-black/60">
+                      Anggaran: {getCreditLabel(selectedWidget.credits)}
+                    </span>
+                    <button
+                      onClick={handleGenerate}
+                      disabled={isGenerating}
+                      className="inline-flex h-11 items-center justify-center rounded-xl bg-[#FE4800] px-6 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
+                    >
+                      {isGenerating ? "Generating..." : "Generate Draft"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-black/40">
+                  <p>← Pilih kerja dari senarai</p>
+                </div>
+              )}
+            </div>
+
+            {/* Output */}
+            {output && (
+              <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold text-black">Draft Output</h2>
+                  <button
+                    onClick={handleSaveDraft}
+                    className="text-sm font-semibold text-[#FE4800] hover:underline"
+                  >
+                    Save Draft
+                  </button>
+                </div>
+                <textarea
+                  value={output}
+                  onChange={(e) => setOutput(e.target.value)}
+                  rows={10}
+                  className="w-full rounded-xl border border-black/10 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FE4800]/20"
+                />
+                <p className="mt-3 text-xs text-black/50">
+                  💡 Edit as needed. AI drafts are starting points, not final answers.
+                </p>
+              </div>
+            )}
+
+            {/* Safety Note */}
+            <div className="rounded-xl bg-black/[0.02] p-4 text-xs text-black/60">
+              <strong>Nota:</strong> Output ini adalah draft sahaja. Sentiasa review sebelum guna.
+              AI boleh buat kesilapan — keputusan akhir adalah tanggungjawab anda.
+            </div>
+          </div>
+        </div>
+
+        {/* Back to Home */}
+        <div className="mt-8 text-center">
+          <Link href="/" className="text-sm font-semibold text-black/60 hover:text-black">
+            ← Kembali ke Homepage
+          </Link>
+        </div>
       </div>
-
-      <PlaygroundTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {activeTab === 'solar' && (
-        <div className="grid md:grid-cols-2 gap-8">
-          <div>
-            <Card>
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2"><span>⚡</span> Solar Feasibility Engine</h2>
-              {solarState === 'idle' && <SolarForm onSubmit={handleSolarSubmit} isLoading={false} />}
-              {solarState === 'loading' && <SolarLoading />}
-              {solarState === 'complete' && <div className="text-center py-8"><div className="text-5xl mb-4">✅</div><h3 className="text-xl font-bold text-green-600">Laporan Sedia!</h3></div>}
-            </Card>
-          </div>
-          <div>
-            {solarState === 'idle' && <Card className="bg-slate-50"><div className="text-center py-12"><div className="text-5xl mb-4">☀️</div><h3 className="text-xl font-semibold text-slate-700 mb-2">Jana Laporan Solar</h3><p className="text-slate-500">Masukkan maklumat bil untuk analisis SEDA NEM 3.0</p></div></Card>}
-            {solarState === 'loading' && <Card><SolarLoading /></Card>}
-            {solarState === 'complete' && solarReport && <SolarReportDisplay report={solarReport} onReset={handleSolarReset} />}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'creative' && (
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <Card><h2 className="text-lg font-semibold mb-4">1. Select Task</h2><TaskSelector selectedTask={selectedTask} onSelectTask={setSelectedTask} disabled={isProcessing} /></Card>
-            <Card><h2 className="text-lg font-semibold mb-4">2. Choose Style</h2><StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} disabled={isProcessing} /></Card>
-            <Card><h2 className="text-lg font-semibold mb-4">3. Choose Persona</h2><PersonaSelector selectedPersona={selectedPersona} onSelectPersona={setSelectedPersona} disabled={isProcessing} /></Card>
-            <Card><h2 className="text-lg font-semibold mb-4">4. Add Prompt (Optional)</h2><input type="text" placeholder="Describe what you want..." value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={isProcessing} className="w-full px-4 py-2 border rounded-lg" /></Card>
-            <Card><h2 className="text-lg font-semibold mb-4">5. Upload Image (Optional)</h2><ImageUploader uploadedImage={uploadedImage} onUpload={setUploadedImage} disabled={isProcessing} /></Card>
-            <GenerateButton onClick={handleCreativeGenerate} disabled={!canGenerate} isGenerating={isProcessing} />
-          </div>
-          <div>
-            <Card className="sticky top-4">
-              <h2 className="text-xl font-bold mb-6">Output</h2>
-              {creativeState === "processing" && <WorkerAnimation currentStep={currentWorker} />}
-              {creativeState === "complete" && creativeResult && <OutputDisplay output={creativeResult} onGenerateAnother={handleCreativeReset} />}
-              {creativeState === "idle" && <div className="text-center py-12 text-slate-500">Select task and style to generate</div>}
-            </Card>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-12 text-center text-sm text-slate-500">Powered by KuasaTurbo • AI Microservices OS</div>
     </div>
   );
 }
