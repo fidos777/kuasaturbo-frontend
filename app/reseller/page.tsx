@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Card from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 
@@ -55,7 +56,9 @@ export default function ResellerPage() {
       </Card>
 
       <div className="text-center">
-        <Button variant="primary">Apply as Reseller</Button>
+        <Link href="/api-access?type=reseller">
+          <Button variant="primary">Apply as Reseller</Button>
+        </Link>
       </div>
     </div>
   );

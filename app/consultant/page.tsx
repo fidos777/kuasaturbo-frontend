@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Card from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 
@@ -50,7 +51,9 @@ export default function ConsultantPage() {
       </Card>
 
       <div className="text-center">
-        <Button variant="primary">Apply as Consultant</Button>
+        <Link href="/api-access?type=consultant">
+          <Button variant="primary">Apply as Consultant</Button>
+        </Link>
       </div>
     </div>
   );
