@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { WIDGETS, getWidgetById, getCreditLabel, type Widget, type WidgetField } from "@/lib/widgets";
@@ -139,7 +139,7 @@ function DynamicField({ field, value, onChange }: {
   }
 }
 
-export default function PlaygroundPage() {
+function PlaygroundContent() {
   const searchParams = useSearchParams();
   const workParam = searchParams.get("work");
   
@@ -149,25 +149,20 @@ export default function PlaygroundPage() {
   const [output, setOutput] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Handle ?work= param
   useEffect(() => {
     if (workParam) {
       const widget = getWidgetById(workParam);
       if (widget) {
         setSelectedWidget(widget);
-        // Set tab based on widget category
         if (workParam.startsWith("ops.")) setActiveTab("ops");
         else if (workParam.startsWith("sales.")) setActiveTab("sales");
         else if (workParam.startsWith("creative.")) setActiveTab("creative");
-        
         trackEvent("work_start", { widget_id: workParam, source: "deeplink" });
       }
     }
   }, [workParam]);
 
-  const currentWidgets = useMemo(() => {
-    return WIDGETS[activeTab] || [];
-  }, [activeTab]);
+  const currentWidgets = useMemo(() => WIDGETS[activeTab] || [], [activeTab]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -190,14 +185,10 @@ export default function PlaygroundPage() {
 
   const handleGenerate = async () => {
     if (!selectedWidget) return;
-    
     setIsGenerating(true);
     trackEvent("work_run", { widget_id: selectedWidget.id, category: activeTab });
-
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Generate mock output based on widget type
     const mockOutputs: Record<string, string> = {
       "ops.expense_categorize.v1": `📋 Expense Categorized\n\nKategori: Perbelanjaan Perniagaan\nJumlah: RM ${formData.amount || "0"}\nNota: ${formData.note || "Tiada nota"}\n\n✅ Sedia untuk report`,
       "ops.daily_sales_log.v1": `📊 Daily Log Recorded\n\nTarikh: ${formData.date || "Hari ini"}\nJumlah: RM ${formData.amount || "0"}\nNota: ${formData.note || "Tiada nota"}\n\n✅ Log disimpan`,
@@ -222,142 +213,85 @@ export default function PlaygroundPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-black/[0.02]">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black">AI Playground</h1>
-          <p className="mt-2 text-black/60">
-            Pilih kerja, isi konteks, dapat draft. Simple.
-          </p>
+          <p className="mt-2 text-black/60">Pilih kerja, isi konteks, dapat draft. Simple.</p>
         </div>
 
-        {/* Tabs */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-xl border border-black/10 bg-black/[0.02] p-1 gap-1">
-            <TabButton
-              active={activeTab === "ops"}
-              onClick={() => handleTabChange("ops")}
-              color="border-blue-500"
-            >
-              🔧 Ops (Daily)
-            </TabButton>
-            <TabButton
-              active={activeTab === "sales"}
-              onClick={() => handleTabChange("sales")}
-              color="border-purple-500"
-            >
-              💼 Sales
-            </TabButton>
-            <TabButton
-              active={activeTab === "creative"}
-              onClick={() => handleTabChange("creative")}
-              color="border-orange-500"
-            >
-              🎨 Creative
-            </TabButton>
+            <TabButton active={activeTab === "ops"} onClick={() => handleTabChange("ops")} color="border-blue-500">🔧 Ops (Daily)</TabButton>
+            <TabButton active={activeTab === "sales"} onClick={() => handleTabChange("sales")} color="border-purple-500">💼 Sales</TabButton>
+            <TabButton active={activeTab === "creative"} onClick={() => handleTabChange("creative")} color="border-orange-500">🎨 Creative</TabButton>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Widget List */}
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
               <h2 className="font-semibold text-black mb-4">Pilih Kerja</h2>
               <div className="space-y-2">
                 {currentWidgets.map((widget) => (
-                  <WidgetCard
-                    key={widget.id}
-                    widget={widget}
-                    selected={selectedWidget?.id === widget.id}
-                    onSelect={() => handleWidgetSelect(widget)}
-                  />
+                  <WidgetCard key={widget.id} widget={widget} selected={selectedWidget?.id === widget.id} onSelect={() => handleWidgetSelect(widget)} />
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Form + Output */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Context Form */}
             <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-              <h2 className="font-semibold text-black mb-4">
-                {selectedWidget ? selectedWidget.label : "Pilih kerja untuk mula"}
-              </h2>
-              
+              <h2 className="font-semibold text-black mb-4">{selectedWidget ? selectedWidget.label : "Pilih kerja untuk mula"}</h2>
               {selectedWidget ? (
                 <div className="space-y-4">
                   {selectedWidget.fields.map((field) => (
                     <div key={field.name}>
                       <label className="block text-sm font-medium text-black mb-2">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                        {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
                       </label>
-                      <DynamicField
-                        field={field}
-                        value={formData[field.name] || ""}
-                        onChange={(val) => handleFieldChange(field.name, val)}
-                      />
+                      <DynamicField field={field} value={formData[field.name] || ""} onChange={(val) => handleFieldChange(field.name, val)} />
                     </div>
                   ))}
-                  
                   <div className="pt-4 flex items-center justify-between">
-                    <span className="text-sm text-black/60">
-                      Anggaran: {getCreditLabel(selectedWidget.credits)}
-                    </span>
-                    <button
-                      onClick={handleGenerate}
-                      disabled={isGenerating}
-                      className="inline-flex h-11 items-center justify-center rounded-xl bg-[#FE4800] px-6 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
-                    >
+                    <span className="text-sm text-black/60">Anggaran: {getCreditLabel(selectedWidget.credits)}</span>
+                    <button onClick={handleGenerate} disabled={isGenerating} className="inline-flex h-11 items-center justify-center rounded-xl bg-[#FE4800] px-6 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50">
                       {isGenerating ? "Generating..." : "Generate Draft"}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-black/40">
-                  <p>← Pilih kerja dari senarai</p>
-                </div>
+                <div className="text-center py-12 text-black/40"><p>← Pilih kerja dari senarai</p></div>
               )}
             </div>
 
-            {/* Output */}
             {output && (
               <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-semibold text-black">Draft Output</h2>
-                  <button
-                    onClick={handleSaveDraft}
-                    className="text-sm font-semibold text-[#FE4800] hover:underline"
-                  >
-                    Save Draft
-                  </button>
+                  <button onClick={handleSaveDraft} className="text-sm font-semibold text-[#FE4800] hover:underline">Save Draft</button>
                 </div>
-                <textarea
-                  value={output}
-                  onChange={(e) => setOutput(e.target.value)}
-                  rows={10}
-                  className="w-full rounded-xl border border-black/10 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FE4800]/20"
-                />
-                <p className="mt-3 text-xs text-black/50">
-                  💡 Edit as needed. AI drafts are starting points, not final answers.
-                </p>
+                <textarea value={output} onChange={(e) => setOutput(e.target.value)} rows={10} className="w-full rounded-xl border border-black/10 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FE4800]/20" />
+                <p className="mt-3 text-xs text-black/50">💡 Edit as needed. AI drafts are starting points, not final answers.</p>
               </div>
             )}
 
-            {/* Safety Note */}
             <div className="rounded-xl bg-black/[0.02] p-4 text-xs text-black/60">
-              <strong>Nota:</strong> Output ini adalah draft sahaja. Sentiasa review sebelum guna.
-              AI boleh buat kesilapan — keputusan akhir adalah tanggungjawab anda.
+              <strong>Nota:</strong> Output ini adalah draft sahaja. Sentiasa review sebelum guna. AI boleh buat kesilapan — keputusan akhir adalah tanggungjawab anda.
             </div>
           </div>
         </div>
 
-        {/* Back to Home */}
         <div className="mt-8 text-center">
-          <Link href="/" className="text-sm font-semibold text-black/60 hover:text-black">
-            ← Kembali ke Homepage
-          </Link>
+          <Link href="/" className="text-sm font-semibold text-black/60 hover:text-black">← Kembali ke Homepage</Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PlaygroundPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>}>
+      <PlaygroundContent />
+    </Suspense>
   );
 }
