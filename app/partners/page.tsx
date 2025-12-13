@@ -22,7 +22,7 @@ export default function PartnersPage() {
             <li>• Training provided</li>
           </ul>
           <Link href="/consultant">
-            <Button variant="secondary" className="w-full">Learn More</Button>
+            <Button variant="primary" className="w-full">Learn More</Button>
           </Link>
         </Card>
 
@@ -37,7 +37,7 @@ export default function PartnersPage() {
             <li>• White-label option</li>
           </ul>
           <Link href="/reseller">
-            <Button variant="secondary" className="w-full">Learn More</Button>
+            <Button variant="primary" className="w-full">Learn More</Button>
           </Link>
         </Card>
 
@@ -52,7 +52,7 @@ export default function PartnersPage() {
             <li>• Technical support</li>
           </ul>
           <Link href="/api-access">
-            <Button variant="secondary" className="w-full">Learn More</Button>
+            <Button variant="primary" className="w-full">Learn More</Button>
           </Link>
         </Card>
       </div>
