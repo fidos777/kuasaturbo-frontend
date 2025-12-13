@@ -1,10 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 
-export default function ApiAccessPage() {
+const PAGE_CONFIG: Record<string, { 
+  title: string; 
+  subtitle: string; 
+  buttonText: string;
+  useCaseLabel: string;
+  useCasePlaceholder: string;
+  successMessage: string;
+}> = {
+  default: {
+    title: "Get API Access",
+    subtitle: "Start building with KuasaTurbo in minutes.",
+    buttonText: "Request API Access",
+    useCaseLabel: "Use Case",
+    useCasePlaceholder: "Tell us how you plan to use KuasaTurbo...",
+    successMessage: "We'll review your application and send your API key within 24 hours.",
+  },
+  consultant: {
+    title: "Apply as Consultant",
+    subtitle: "Join our consultant program and help businesses implement KuasaTurbo.",
+    buttonText: "Submit Application",
+    useCaseLabel: "Why do you want to become a consultant?",
+    useCasePlaceholder: "Tell us about your experience, your clients, and how you plan to help businesses with KuasaTurbo...",
+    successMessage: "We'll review your consultant application and get back to you within 2-3 business days.",
+  },
+  reseller: {
+    title: "Apply as Reseller",
+    subtitle: "Partner with us to white-label KuasaTurbo for your customers.",
+    buttonText: "Submit Application",
+    useCaseLabel: "Tell us about your reseller business",
+    useCasePlaceholder: "Describe your business, target market, expected volume, and how you plan to sell KuasaTurbo...",
+    successMessage: "We'll review your reseller application and get back to you within 2-3 business days.",
+  },
+};
+
+function ApiAccessForm() {
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type") || "default";
+  const config = PAGE_CONFIG[type] || PAGE_CONFIG.default;
+
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -13,6 +52,9 @@ export default function ApiAccessPage() {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
+    
+    // Add type to form data so you know the source
+    formData.append("application_type", type);
 
     try {
       const response = await fetch("https://formspree.io/f/mrbnozeq", {
@@ -39,7 +81,7 @@ export default function ApiAccessPage() {
           <div className="text-6xl mb-6">✅</div>
           <h1 className="text-4xl font-bold mb-4">Application Submitted!</h1>
           <p className="text-xl text-slate-600 mb-8">
-            We'll review your application and send your API key within 24 hours.
+            {config.successMessage}
           </p>
           <Button variant="primary" onClick={() => setStatus("idle")}>
             Submit Another
@@ -52,9 +94,9 @@ export default function ApiAccessPage() {
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6 text-center">Get API Access</h1>
+        <h1 className="text-4xl font-bold mb-6 text-center">{config.title}</h1>
         <p className="text-xl text-slate-600 mb-12 text-center">
-          Start building with KuasaTurbo in minutes.
+          {config.subtitle}
         </p>
 
         <Card className="mb-8">
@@ -113,13 +155,13 @@ export default function ApiAccessPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Use Case
+                {config.useCaseLabel}
               </label>
               <textarea
                 name="usecase"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 rows={4}
-                placeholder="Tell us how you plan to use KuasaTurbo..."
+                placeholder={config.useCasePlaceholder}
               />
             </div>
 
@@ -135,7 +177,7 @@ export default function ApiAccessPage() {
               className="w-full"
               disabled={status === "submitting"}
             >
-              {status === "submitting" ? "Submitting..." : "Request API Access"}
+              {status === "submitting" ? "Submitting..." : config.buttonText}
             </Button>
           </form>
         </Card>
@@ -143,13 +185,45 @@ export default function ApiAccessPage() {
         <Card className="bg-slate-100">
           <h2 className="text-xl font-bold mb-4">What happens next?</h2>
           <ol className="space-y-3 text-slate-700">
-            <li>1. We'll review your application within 24 hours</li>
-            <li>2. You'll receive your API key via email</li>
-            <li>3. Get 100 free credits to start testing</li>
-            <li>4. Access full documentation and SDKs</li>
+            {type === "consultant" ? (
+              <>
+                <li>1. We'll review your consultant application</li>
+                <li>2. Schedule an onboarding call if approved</li>
+                <li>3. Get access to consultant dashboard and tools</li>
+                <li>4. Start earning 20% commission on client purchases</li>
+              </>
+            ) : type === "reseller" ? (
+              <>
+                <li>1. We'll review your reseller application</li>
+                <li>2. Discuss pricing tier and volume requirements</li>
+                <li>3. Set up your white-label dashboard</li>
+                <li>4. Start selling KuasaTurbo to your customers</li>
+              </>
+            ) : (
+              <>
+                <li>1. We'll review your application within 24 hours</li>
+                <li>2. You'll receive your API key via email</li>
+                <li>3. Get 100 free credits to start testing</li>
+                <li>4. Access full documentation and SDKs</li>
+              </>
+            )}
           </ol>
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ApiAccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <p>Loading...</p>
+        </div>
+      </div>
+    }>
+      <ApiAccessForm />
+    </Suspense>
   );
 }
