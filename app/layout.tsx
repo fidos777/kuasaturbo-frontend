@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "KuasaTurbo – AI Microservices for Malaysian Business",
-  description: "Tak perlu hire developer. Tak perlu belajar coding. Pilih widget, pilih persona, tekan run.",
+  title: "KuasaTurbo - AI Microservices untuk Malaysian Business",
+  description: "AI-powered microservices platform for Malaysian SMEs. Solar feasibility, creative content, and business automation.",
 };
 
 export default function RootLayout({
@@ -18,10 +19,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
-        <Navbar />
-        <main className="min-h-[calc(100vh-160px)]">{children}</main>
+      <body className={inter.className}>
+        <Header />
+        <main className="min-h-screen">{children}</main>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
