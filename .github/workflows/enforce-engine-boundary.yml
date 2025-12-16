@@ -1,0 +1,32 @@
+name: Enforce Engine Boundary
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  boundary-check:
+    name: Check Engine Boundary Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for engine logic violations
+        run: |
+          echo "🔍 Scanning for engine logic in frontend..."
+          PATTERNS=("creditEngine" "validateCredit" "lockCredit" "consumeCredit" "workflowRuntime" "executeWorkflow" "proofFabric" "generateProofId")
+          VIOLATIONS=0
+          for PATTERN in "${PATTERNS[@]}"; do
+            if grep -r --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+                      "$PATTERN" . --exclude-dir=node_modules --exclude-dir=.github 2>/dev/null; then
+              echo "❌ Found engine logic: $PATTERN"
+              VIOLATIONS=1
+            fi
+          done
+          if [ $VIOLATIONS -eq 1 ]; then
+            echo "❌ VIOLATION: Engine logic detected in frontend"
+            echo "Engine logic must stay in qontrek-engine"
+            exit 1
+          else
+            echo "✅ No engine boundary violations"
+          fi
