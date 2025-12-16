@@ -1,0 +1,33 @@
+name: Enforce Deprecated Repos
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+  push:
+    branches: [main, master, develop]
+
+jobs:
+  deprecated-scan:
+    name: Scan for Deprecated Repo Usage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block deprecated repo imports
+        run: |
+          echo "🔍 Scanning for deprecated repository usage..."
+          DEPRECATED_REPOS=("qontrek-flows-js")
+          VIOLATIONS_FOUND=0
+          for REPO in "${DEPRECATED_REPOS[@]}"; do
+            echo "Checking for: $REPO"
+            if grep -r --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+                      --include="*.json" "$REPO" . --exclude-dir=.github --exclude-dir=node_modules 2>/dev/null; then
+              echo "❌ ERROR: Found reference to deprecated repo: $REPO"
+              VIOLATIONS_FOUND=1
+            fi
+          done
+          if [ $VIOLATIONS_FOUND -eq 1 ]; then
+            echo "❌ VIOLATION: Deprecated Repository Reference Detected"
+            exit 1
+          else
+            echo "✅ No deprecated repository references found"
+          fi
