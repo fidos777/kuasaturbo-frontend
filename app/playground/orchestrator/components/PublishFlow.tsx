@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { X, AlertTriangle, Check, Globe, Lock, Link as LinkIcon, Rocket, TrendingDown } from 'lucide-react';
+import { X, AlertTriangle, Check, Globe, Lock, Link as LinkIcon, Send, TrendingDown, Scale, Shield } from 'lucide-react';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { TASK_CATEGORIES, getTaskById } from '../data/tasks';
+import { QONTREK_TAGLINES } from '@/types/orchestrator';
 
 interface PublishFlowProps {
   isOpen: boolean;
@@ -69,6 +70,7 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
     const timestamp = new Date().toISOString();
     const proofInput = `${currentWorkflow?.id || 'new'}:${timestamp}:${nodes.length}:v1`;
     const displayProofHash = `proof_${btoa(proofInput).slice(0, 24)}`;
+    const proposalId = `prop_${btoa(proofInput).slice(0, 16)}`;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -76,19 +78,19 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
         <div className="relative bg-background border border-gray-700 rounded-card p-8 max-w-md">
           {/* Success Icon */}
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check size={32} className="text-success" />
+            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Send size={32} className="text-blue-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Workflow Activated!</h2>
-            <p className="text-gray-400">Your workflow is now live and earning.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Proposal Submitted!</h2>
+            <p className="text-gray-400">Awaiting Qontrek certification decision.</p>
           </div>
 
-          {/* Certification Tier Badge */}
+          {/* Status Badge - UNDER REVIEW (not CERTIFIED) */}
           <div className="flex justify-center mb-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-sm font-medium text-green-300">CERTIFIED</span>
-              <span className="text-xs text-gray-400">Human-Approved</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+              <span className="text-sm font-medium text-yellow-300">UNDER REVIEW</span>
+              <span className="text-xs text-gray-400">Pending Qontrek Decision</span>
             </div>
           </div>
 
@@ -96,19 +98,31 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
           <div className="bg-card border border-gray-700 rounded-card p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-amber-400">🔐</span>
-              <span className="text-sm font-semibold text-gray-300">Proof Hash</span>
+              <span className="text-sm font-semibold text-gray-300">Evidence Hash</span>
             </div>
             <code className="block text-xs text-amber-300 bg-black/30 px-3 py-2 rounded font-mono break-all">
               {displayProofHash}
             </code>
-            <p className="text-xs text-gray-500 mt-2">
-              Audit trail reference linked to source data
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-blue-400">📋</span>
+              <span className="text-xs text-gray-500">Proposal ID: {proposalId}</span>
+            </div>
           </div>
 
-          {/* 6 Declarations Accepted */}
-          <div className="text-center text-sm text-gray-400">
-            <span className="text-success">✓</span> 6 Declarations Accepted
+          {/* 6 Evidence Attachments Accepted */}
+          <div className="text-center text-sm text-gray-400 mb-4">
+            <span className="text-success">✓</span> 6 Evidence Attachments Acknowledged
+          </div>
+
+          {/* Sovereignty Statement */}
+          <div className="bg-blue-500/5 border border-blue-500/20 rounded-card p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Scale size={14} className="text-blue-400" />
+              <span className="text-xs font-semibold text-blue-300">Constitutional Reminder</span>
+            </div>
+            <p className="text-xs text-gray-400 italic">
+              "{QONTREK_TAGLINES.constitutional}"
+            </p>
           </div>
         </div>
       </div>
@@ -126,7 +140,7 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
         <div className="sticky top-0 bg-background border-b border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">Activate Workflow</h2>
+              <h2 className="text-xl font-bold text-white">Propose for Certification</h2>
               <p className="text-sm text-gray-400">{nodes.length} tasks configured</p>
             </div>
             <button
@@ -135,6 +149,13 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
             >
               <X size={20} className="text-gray-400" />
             </button>
+          </div>
+          {/* Constitutional Law Banner */}
+          <div className="mt-3 bg-blue-500/5 border border-blue-500/20 rounded-card p-2 flex items-center gap-2">
+            <Shield size={14} className="text-blue-400 flex-shrink-0" />
+            <p className="text-xs text-gray-400">
+              <span className="text-blue-300">Orchestrator proposes</span> → Qontrek decides → KuasaTurbo distributes
+            </p>
           </div>
         </div>
 
@@ -278,11 +299,14 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
             )}
           </section>
 
-          {/* Declarations */}
+          {/* Evidence Attachments (formerly Declarations) */}
           <section>
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Declarations
+              Evidence Attachments
             </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              These acknowledgments become part of your certification proposal evidence.
+            </p>
             <div className="space-y-3">
               <DeclarationCheckbox
                 checked={publishDeclarations.nonAuthoritative}
@@ -322,25 +346,39 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
         </div>
 
         {/* Footer Actions */}
-        <div className="sticky bottom-0 bg-background border-t border-gray-700 p-4 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Save as Draft
-          </button>
-          <button
-            onClick={handlePublish}
-            disabled={!allDeclarationsAccepted || !name || !description || isPublishing}
-            className={`px-6 py-2 text-sm font-medium rounded-button transition-colors flex items-center gap-2 ${
-              allDeclarationsAccepted && name && description
-                ? 'bg-success hover:bg-green-600 text-white'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Rocket size={16} />
-            {isPublishing ? 'Activating...' : 'Activate Workflow'}
-          </button>
+        <div className="sticky bottom-0 bg-background border-t border-gray-700 p-4">
+          {/* Liability Statement (Soft Gap #3) */}
+          <div className="mb-4 bg-amber-500/5 border border-amber-500/20 rounded-card p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle size={14} className="text-amber-400" />
+              <span className="text-xs font-semibold text-amber-300">Liability Boundary</span>
+            </div>
+            <p className="text-xs text-gray-400">
+              Certification confirms <span className="text-amber-300">capability</span>, not outcome.
+              Qontrek does not guarantee results. Operator assumes responsibility for use.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Save as Draft
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={!allDeclarationsAccepted || !name || !description || isPublishing}
+              className={`px-6 py-2 text-sm font-medium rounded-button transition-colors flex items-center gap-2 ${
+                allDeclarationsAccepted && name && description
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Send size={16} />
+              {isPublishing ? 'Submitting...' : 'Submit for Certification'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

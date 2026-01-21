@@ -1,14 +1,33 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Calculator, TrendingUp, AlertTriangle, DollarSign, Percent } from 'lucide-react';
+import { Calculator, TrendingUp, AlertTriangle, Coins, Zap, TrendingDown } from 'lucide-react';
 import { useWorkflowStore } from '@/store/workflowStore';
+import { useCreditStore } from '@/store/creditStore';
 import { getTaskById } from '../data/tasks';
+import { CREDIT_COST_MULTIPLIERS, WorkflowStatus } from '@/types/orchestrator';
 
 export default function CostCalculator() {
-  const { nodes, calculateCostBreakdown } = useWorkflowStore();
+  const { nodes, calculateCostBreakdown, currentWorkflow } = useWorkflowStore();
+  const { balance, calculateWorkflowCost, checkCredits } = useCreditStore();
 
   const costBreakdown = useMemo(() => calculateCostBreakdown(), [nodes, calculateCostBreakdown]);
+
+  // Get current workflow status (default to sandbox for new workflows)
+  const workflowStatus: WorkflowStatus = currentWorkflow?.status || 'sandbox';
+
+  // Calculate credit cost with trust multiplier
+  const creditEstimate = useMemo(() => {
+    // Convert RM cost to credits (1 credit = RM 0.10)
+    const baseCredits = Math.ceil(costBreakdown.subtotal * 10);
+    return calculateWorkflowCost(baseCredits, workflowStatus);
+  }, [costBreakdown.subtotal, workflowStatus, calculateWorkflowCost]);
+
+  // Check if user has enough credits
+  const creditCheck = useMemo(() => {
+    if (!creditEstimate) return null;
+    return checkCredits(creditEstimate.final_cost);
+  }, [creditEstimate, checkCredits]);
 
   // Calculate estimated success rate
   const estimatedSuccessRate = useMemo(() => {
@@ -71,10 +90,105 @@ export default function CostCalculator() {
         </div>
       </div>
 
+      {/* Credit Cost Section (Phase 8.1) */}
+      {nodes.length > 0 && creditEstimate && (
+        <div className="p-4 border-b border-gray-700 bg-gradient-to-r from-primary/5 to-purple-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Coins size={16} className="text-primary" />
+            <h3 className="text-sm font-semibold text-gray-300">Execution Credits</h3>
+            <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded-full">
+              Phase 8.1
+            </span>
+          </div>
+
+          {/* Credit Cost Display */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="bg-card/50 rounded-lg p-2">
+              <div className="text-[10px] text-gray-400 mb-1">Base Cost</div>
+              <div className="text-lg font-bold text-white">
+                {creditEstimate.base_cost} <span className="text-xs text-gray-400">credits</span>
+              </div>
+            </div>
+            <div className="bg-card/50 rounded-lg p-2">
+              <div className="text-[10px] text-gray-400 mb-1">Final Cost</div>
+              <div className={`text-lg font-bold ${
+                creditEstimate.savings_from_trust > 0 ? 'text-success' : 'text-white'
+              }`}>
+                {creditEstimate.final_cost} <span className="text-xs text-gray-400">credits</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Trust Multiplier */}
+          <div className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg mb-3">
+            <div className="flex items-center gap-2">
+              <Zap size={14} className="text-purple-400" />
+              <span className="text-xs text-gray-400">Trust Multiplier</span>
+              <span className="text-xs text-gray-500 capitalize">
+                ({workflowStatus.replace('_', ' ')})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${
+                creditEstimate.trust_multiplier < 1 ? 'text-success' :
+                creditEstimate.trust_multiplier > 1 ? 'text-amber-400' :
+                'text-white'
+              }`}>
+                {creditEstimate.trust_multiplier}x
+              </span>
+              {creditEstimate.savings_from_trust > 0 && (
+                <span className="flex items-center gap-1 text-xs text-success">
+                  <TrendingDown size={12} />
+                  {creditEstimate.trust_discount_percent}% off
+                </span>
+              )}
+              {creditEstimate.trust_discount_percent < 0 && (
+                <span className="text-xs text-amber-400">
+                  +{Math.abs(creditEstimate.trust_discount_percent)}% premium
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Credit Balance Check */}
+          {creditCheck && (
+            <div className={`flex items-center justify-between p-2 rounded-lg ${
+              creditCheck.can_execute
+                ? 'bg-success/10 border border-success/20'
+                : 'bg-error/10 border border-error/20'
+            }`}>
+              <div className="flex items-center gap-2">
+                <Coins size={14} className={creditCheck.can_execute ? 'text-success' : 'text-error'} />
+                <span className={`text-xs ${creditCheck.can_execute ? 'text-success' : 'text-error'}`}>
+                  {creditCheck.can_execute
+                    ? `Sufficient credits (${creditCheck.available_credits} available)`
+                    : `Need ${creditCheck.shortfall} more credits`
+                  }
+                </span>
+              </div>
+              {!creditCheck.can_execute && (
+                <button
+                  onClick={() => useCreditStore.getState().openPurchaseModal(creditCheck.suggested_package)}
+                  className="text-xs px-2 py-1 bg-primary hover:bg-primary-600 text-white
+                    rounded-button transition-colors"
+                >
+                  Top Up
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Trust Economics Note */}
+          <p className="text-[10px] text-gray-500 mt-2">
+            Higher certification tiers unlock cheaper execution rates
+          </p>
+        </div>
+      )}
+
       {/* Cost Breakdown */}
       <div className="flex-1 overflow-y-auto p-4">
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          Cost Breakdown
+          Cost Breakdown (RM)
         </h3>
 
         {costBreakdown.taskCosts.length > 0 ? (

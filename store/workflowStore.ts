@@ -8,7 +8,8 @@ import {
   SimulationStep,
   SimulationResult,
   PublishDeclarations,
-  REVENUE_SPLIT
+  REVENUE_SPLIT,
+  WorkflowStatus
 } from '@/types/orchestrator';
 import { getTaskById, TASK_DEFINITIONS } from '@/app/playground/orchestrator/data/tasks';
 
@@ -400,12 +401,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     }));
   },
 
+  // CONSTITUTIONAL: This function PROPOSES for certification
+  // It does NOT certify. Only Qontrek can transition to 'certified'.
+  // Status becomes 'under_review', NOT 'certified'.
   publishWorkflow: (name: string, description: string, category: string, visibility: 'public' | 'private' | 'unlisted') => {
     const { currentWorkflow, nodes, connections, savedWorkflows, publishDeclarations } = get();
 
-    // Validate all declarations are accepted (6 declarations per Unified Architecture)
+    // Validate all evidence attachments are acknowledged (6 per Unified Architecture)
     if (!Object.values(publishDeclarations).every(v => v)) {
-      throw new Error('All 6 declarations must be accepted before activation');
+      throw new Error('All 6 evidence attachments must be acknowledged before proposal');
     }
 
     const costBreakdown = get().calculateCostBreakdown();
@@ -415,21 +419,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const workflowId = currentWorkflow?.id || uuidv4();
     const proofInput = `${workflowId}:${timestamp}:${nodes.length}:v1`;
     const proofHash = `proof_${btoa(proofInput).slice(0, 24)}`;
+    const proposalId = `prop_${btoa(proofInput).slice(0, 16)}`;
 
-    const certifiedWorkflow: Workflow = {
+    // CONSTITUTIONAL: Status is 'under_review', NOT 'certified'
+    // Only Qontrek can transition to 'sandbox', 'certified', or 'promoted'
+    // This enforces: "Orchestrator discovers capability. Qontrek decides trust."
+    const proposedWorkflow: Workflow = {
       id: workflowId,
       name,
       description,
       category,
       nodes: [...nodes],
       connections: [...connections],
-      status: 'certified',  // Human-approved tier (from Unified Architecture)
+      status: 'under_review',  // Awaiting Qontrek decision (NOT 'certified')
       visibility,
       totalCost: costBreakdown.subtotal,
       estimatedRevenue: costBreakdown.designerCut,
       createdAt: currentWorkflow?.createdAt || new Date(),
       updatedAt: new Date(),
-      proofHash,  // Audit trail reference
+      proofHash,      // Evidence hash for audit trail
+      proposalId,     // Certification proposal reference
       stats: {
         runs: 0,
         successRate: 0,
@@ -437,17 +446,17 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       },
     };
 
-    const existingIndex = savedWorkflows.findIndex(wf => wf.id === certifiedWorkflow.id);
+    const existingIndex = savedWorkflows.findIndex(wf => wf.id === proposedWorkflow.id);
     const newSavedWorkflows = [...savedWorkflows];
 
     if (existingIndex >= 0) {
-      newSavedWorkflows[existingIndex] = certifiedWorkflow;
+      newSavedWorkflows[existingIndex] = proposedWorkflow;
     } else {
-      newSavedWorkflows.push(certifiedWorkflow);
+      newSavedWorkflows.push(proposedWorkflow);
     }
 
     set({
-      currentWorkflow: certifiedWorkflow,
+      currentWorkflow: proposedWorkflow,
       savedWorkflows: newSavedWorkflows,
     });
   },

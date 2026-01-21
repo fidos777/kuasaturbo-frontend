@@ -26,6 +26,18 @@ export default function Navbar() {
             <Link href="/playground" className="text-slate-700 hover:text-primary">
               Playground
             </Link>
+            <Link href="/dashboard/qpi" className="text-slate-700 hover:text-primary">
+              QPI Dashboard
+            </Link>
+            <Link href="/dashboard/pte" className="text-slate-700 hover:text-primary">
+              PTE Dashboard
+            </Link>
+            <Link href="/dashboard/pil" className="text-slate-700 hover:text-primary">
+              PIL Editor
+            </Link>
+            <Link href="/dashboard/verify" className="text-slate-700 hover:text-primary font-medium">
+              Verify Studio
+            </Link>
             <Link href="/api-access">
               <Button variant="primary">Get API Access</Button>
             </Link>

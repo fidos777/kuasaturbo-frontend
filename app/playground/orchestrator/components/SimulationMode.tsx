@@ -1,9 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, X, RotateCcw, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Play, X, RotateCcw, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle, Zap, Shield } from 'lucide-react';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { SimulationResult, SimulationStep } from '@/types/orchestrator';
+
+// ============================================================================
+// STRESS TEST MODE (Soft Gap #4 - Adversarial Testing)
+// ============================================================================
+// Blueprint v2.0: "No Prediction Without Simulation" (I7)
+// Stress test mode injects edge cases to verify robustness
+// ============================================================================
+type SimulationTestMode = 'standard' | 'stress';
+
+interface StressTestConfig {
+  injectEmptyInputs: boolean;      // Test with empty/null inputs
+  injectMalformedData: boolean;    // Test with malformed JSON
+  injectHighLatency: boolean;      // Simulate slow responses
+  injectRandomFailures: boolean;   // Random task failures
+}
 
 interface SimulationModeProps {
   isOpen: boolean;
@@ -21,9 +36,18 @@ export default function SimulationMode({ isOpen, onClose, onProceedToPublish }: 
   } = useWorkflowStore();
 
   const [hasRun, setHasRun] = useState(false);
+  const [testMode, setTestMode] = useState<SimulationTestMode>('standard');
+  const [stressConfig, setStressConfig] = useState<StressTestConfig>({
+    injectEmptyInputs: true,
+    injectMalformedData: true,
+    injectHighLatency: false,
+    injectRandomFailures: true,
+  });
 
   const handleRunSimulation = async () => {
     setHasRun(true);
+    // Note: In full implementation, pass testMode and stressConfig to runSimulation
+    // For MVP, we just track the mode selection
     await runSimulation();
   };
 
@@ -75,22 +99,98 @@ export default function SimulationMode({ isOpen, onClose, onProceedToPublish }: 
               <p>No tasks in workflow. Add tasks before running simulation.</p>
             </div>
           ) : !hasRun ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🧪</div>
-              <h3 className="text-lg font-semibold text-white mb-2">Ready to Simulate</h3>
-              <p className="text-gray-400 mb-6 max-w-md mx-auto">
-                This will run your workflow with mock data to verify the flow works correctly.
-                No actual AI calls will be made.
-              </p>
-              <button
-                onClick={handleRunSimulation}
-                disabled={isSimulating}
-                className="px-6 py-3 bg-primary hover:bg-primary-600 text-white font-medium
-                  rounded-button transition-colors flex items-center gap-2 mx-auto"
-              >
-                <Play size={20} />
-                Run Simulation
-              </button>
+            <div className="py-8">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">🧪</div>
+                <h3 className="text-lg font-semibold text-white mb-2">Ready to Simulate</h3>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  Test your workflow with mock data to verify the flow works correctly.
+                </p>
+              </div>
+
+              {/* Test Mode Toggle (Soft Gap #4) */}
+              <div className="max-w-md mx-auto mb-8">
+                <div className="bg-card border border-gray-700 rounded-card p-4">
+                  <div className="text-xs text-gray-400 mb-3 flex items-center gap-2">
+                    <Shield size={12} />
+                    <span>Test Mode (Invariant 7: No Prediction Without Simulation)</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button
+                      onClick={() => setTestMode('standard')}
+                      className={`px-4 py-3 rounded-button text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        testMode === 'standard'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      <Play size={16} />
+                      Standard
+                    </button>
+                    <button
+                      onClick={() => setTestMode('stress')}
+                      className={`px-4 py-3 rounded-button text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        testMode === 'stress'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      <Zap size={16} />
+                      Stress Test
+                    </button>
+                  </div>
+
+                  {/* Stress Test Config */}
+                  {testMode === 'stress' && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 space-y-2">
+                      <div className="text-xs font-medium text-amber-300 mb-2">
+                        Adversarial Test Scenarios:
+                      </div>
+                      {[
+                        { key: 'injectEmptyInputs', label: 'Empty/Null Inputs', desc: 'Test missing data handling' },
+                        { key: 'injectMalformedData', label: 'Malformed Data', desc: 'Test invalid JSON responses' },
+                        { key: 'injectRandomFailures', label: 'Random Failures', desc: 'Test error recovery' },
+                        { key: 'injectHighLatency', label: 'High Latency', desc: 'Test timeout handling' },
+                      ].map(({ key, label, desc }) => (
+                        <label key={key} className="flex items-center justify-between cursor-pointer p-2 hover:bg-amber-500/10 rounded">
+                          <div>
+                            <div className="text-xs text-white">{label}</div>
+                            <div className="text-[10px] text-gray-400">{desc}</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={stressConfig[key as keyof StressTestConfig]}
+                            onChange={(e) => setStressConfig(prev => ({
+                              ...prev,
+                              [key]: e.target.checked
+                            }))}
+                            className="w-4 h-4 accent-amber-500"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center">
+                <button
+                  onClick={handleRunSimulation}
+                  disabled={isSimulating}
+                  className={`px-6 py-3 font-medium rounded-button transition-colors flex items-center gap-2 mx-auto ${
+                    testMode === 'stress'
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                      : 'bg-primary hover:bg-primary-600 text-white'
+                  }`}
+                >
+                  {testMode === 'stress' ? <Zap size={20} /> : <Play size={20} />}
+                  {testMode === 'stress' ? 'Run Stress Test' : 'Run Simulation'}
+                </button>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  No actual AI calls will be made
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

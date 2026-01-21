@@ -11,6 +11,9 @@ import PublishFlow from './components/PublishFlow';
 import SemanticFirewall from './components/SemanticFirewall';
 import { TaskDefinition } from '@/types/orchestrator';
 import { useWorkflowStore } from '@/store/workflowStore';
+import { useCreditStore } from '@/store/creditStore';
+import CreditBalance from '@/app/components/credits/CreditBalance';
+import CreditPurchaseModal from '@/app/components/credits/CreditPurchaseModal';
 
 export default function OrchestratorPage() {
   const initialized = useRef(false);
@@ -19,6 +22,12 @@ export default function OrchestratorPage() {
   const createNewWorkflow = useWorkflowStore(state => state.createNewWorkflow);
   const addNode = useWorkflowStore(state => state.addNode);
   const saveWorkflow = useWorkflowStore(state => state.saveWorkflow);
+
+  // Initialize credit balance on mount
+  const initializeBalance = useCreditStore(state => state.initializeBalance);
+  useEffect(() => {
+    initializeBalance('demo-tenant-001', 'Demo User');
+  }, [initializeBalance]);
 
   // Modal states
   const [selectedTask, setSelectedTask] = useState<TaskDefinition | null>(null);
@@ -64,6 +73,15 @@ export default function OrchestratorPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Credit Balance Display (Phase 8.1) */}
+          <CreditBalance
+            variant="compact"
+            showTopUp={true}
+            currentWorkflowStatus={currentWorkflow?.status || 'sandbox'}
+          />
+
+          <div className="w-px h-6 bg-gray-700" />
+
           <button
             onClick={saveWorkflow}
             className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
@@ -137,6 +155,9 @@ export default function OrchestratorPage() {
         onClose={() => setIsPublishOpen(false)}
         onPublishSuccess={() => {}}
       />
+
+      {/* Credit Purchase Modal (Phase 8.1) */}
+      <CreditPurchaseModal />
     </div>
   );
 }

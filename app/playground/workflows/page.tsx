@@ -132,18 +132,40 @@ function WorkflowCard({
   workflow: any;
   onLoad: (id: string) => void;
 }) {
-  // Certification tiers: sandbox (draft), certified (human-approved), promoted (marketplace)
+  // Blueprint v2.0: Full state machine support
+  // States: draft → tested → scored → under_review → [sandbox|verified] → certified → promoted
   const isCertified = workflow.status === 'certified';
   const isPromoted = workflow.status === 'promoted';
   const isLive = isCertified || isPromoted;
-  const isDraft = workflow.status === 'draft' || workflow.status === 'sandbox';
+  const isInProgress = ['tested', 'scored', 'under_review', 'verified'].includes(workflow.status);
+  const isDraft = workflow.status === 'draft';
+  const isTerminal = ['rejected', 'archived'].includes(workflow.status);
 
-  // Get tier badge info
+  // Get tier badge info - Blueprint v2.0 all 10 states
   const getTierBadge = () => {
-    if (isPromoted) return { label: 'PROMOTED', color: 'bg-blue-500/20 text-blue-400', icon: '🚀' };
-    if (isCertified) return { label: 'CERTIFIED', color: 'bg-success/20 text-success', icon: '✓' };
-    if (workflow.status === 'sandbox') return { label: 'SANDBOX', color: 'bg-yellow-500/20 text-yellow-400', icon: '🧪' };
-    return { label: 'DRAFT', color: 'bg-gray-700 text-gray-400', icon: '' };
+    switch (workflow.status) {
+      case 'promoted':
+        return { label: 'PROMOTED', color: 'bg-blue-500/20 text-blue-400', icon: '🚀' };
+      case 'certified':
+        return { label: 'CERTIFIED', color: 'bg-success/20 text-success', icon: '✓' };
+      case 'verified':
+        return { label: 'VERIFIED', color: 'bg-purple-500/20 text-purple-400', icon: '🔮' };
+      case 'sandbox':
+        return { label: 'SANDBOX', color: 'bg-yellow-500/20 text-yellow-400', icon: '🧪' };
+      case 'under_review':
+        return { label: 'UNDER REVIEW', color: 'bg-amber-500/20 text-amber-400', icon: '⏳' };
+      case 'scored':
+        return { label: 'SCORED', color: 'bg-cyan-500/20 text-cyan-400', icon: '📊' };
+      case 'tested':
+        return { label: 'TESTED', color: 'bg-teal-500/20 text-teal-400', icon: '✔' };
+      case 'rejected':
+        return { label: 'REJECTED', color: 'bg-error/20 text-error', icon: '✗' };
+      case 'archived':
+        return { label: 'ARCHIVED', color: 'bg-gray-600/20 text-gray-500', icon: '📦' };
+      case 'draft':
+      default:
+        return { label: 'DRAFT', color: 'bg-gray-700 text-gray-400', icon: '📝' };
+    }
   };
   const tierBadge = getTierBadge();
 
@@ -196,9 +218,23 @@ function WorkflowCard({
             </div>
           )}
 
-          {/* Draft notice */}
+          {/* Status notice - Blueprint v2.0 state feedback */}
           {isDraft && (
-            <p className="text-sm text-gray-500">Not activated yet</p>
+            <p className="text-sm text-gray-500">Draft - Run simulation to progress</p>
+          )}
+          {isInProgress && (
+            <p className="text-sm text-amber-400/80">
+              {workflow.status === 'under_review' && '⏳ Awaiting Qontrek certification decision'}
+              {workflow.status === 'verified' && '🔮 Mathematical verification passed - Pending certification'}
+              {workflow.status === 'scored' && '📊 Metrics calculated - Ready to propose'}
+              {workflow.status === 'tested' && '✔ Simulation passed - Calculate metrics next'}
+            </p>
+          )}
+          {isTerminal && (
+            <p className="text-sm text-gray-500">
+              {workflow.status === 'rejected' && '✗ Rejected by Qontrek - Can restart from draft'}
+              {workflow.status === 'archived' && '📦 Archived - No longer active'}
+            </p>
           )}
         </div>
 
