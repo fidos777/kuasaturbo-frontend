@@ -50,7 +50,9 @@ export default function HeroChooser() {
           <div className="flex flex-wrap items-center gap-2">
             <Pill>Ops-first</Pill>
             <Pill>Harga ikut kerja</Pill>
-            <Pill>Playground ready</Pill>
+            <Pill>
+              <span className="text-[#0B1B3A] font-semibold">Certified by Qontrek</span>
+            </Pill>
           </div>
 
           <div className="max-w-3xl">

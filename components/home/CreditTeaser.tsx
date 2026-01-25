@@ -33,7 +33,7 @@ export default function CreditTeaser() {
           <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="text-sm font-semibold text-black">Contoh &quot;Ops-first&quot;</div>
             <ul className="mt-3 space-y-2 text-sm text-black/65">
-              <li>• Upload resit → AI categorize → auto-ready for report</li>
+              <li>• Upload resit → categorize → auto-ready for report</li>
               <li>• Daily sales log → track trend → nampak leakage</li>
               <li>• Meeting notes → action list → reduce &quot;lost follow-up&quot;</li>
               <li>• Shift handover → team alignment → less chaos</li>

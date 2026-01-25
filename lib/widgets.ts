@@ -23,7 +23,7 @@ export const WIDGETS: Record<"ops" | "sales" | "creative", Widget[]> = {
     {
       id: "ops.expense_categorize.v1",
       label: "Upload Resit → Categorize",
-      description: "AI categorize expense dari gambar resit",
+      description: "Categorize expense dari gambar resit",
       credits: [2, 3],
       badge: "OPS",
       fields: [

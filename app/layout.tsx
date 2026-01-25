@@ -8,7 +8,7 @@ import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "KuasaTurbo – AI Microservices for Malaysian Business",
+  title: "KuasaTurbo – Microservices for Malaysian Business",
   description: "Tak perlu hire developer. Tak perlu belajar coding. Pilih widget, pilih persona, tekan run.",
 };
 

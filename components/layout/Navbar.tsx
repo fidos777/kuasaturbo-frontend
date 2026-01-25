@@ -26,17 +26,15 @@ export default function Navbar() {
             <Link href="/playground" className="text-slate-700 hover:text-primary">
               Playground
             </Link>
-            <Link href="/dashboard/qpi" className="text-slate-700 hover:text-primary">
-              QPI Dashboard
+            {/* ELS-1 Constitutional Compliance: Internal tools hidden from public nav */}
+            {/* QPI Dashboard - HIDDEN (internal metrics) */}
+            {/* PTE Dashboard - HIDDEN (moved to Qontrek domain) */}
+            {/* PIL Editor - HIDDEN (internal development tool) */}
+            <Link href="/orchestrator" className="text-slate-700 hover:text-primary font-medium">
+              Orchestrator
             </Link>
-            <Link href="/dashboard/pte" className="text-slate-700 hover:text-primary">
-              PTE Dashboard
-            </Link>
-            <Link href="/dashboard/pil" className="text-slate-700 hover:text-primary">
-              PIL Editor
-            </Link>
-            <Link href="/dashboard/verify" className="text-slate-700 hover:text-primary font-medium">
-              Verify Studio
+            <Link href="/proof-logs" className="text-slate-700 hover:text-primary">
+              Proof Logs
             </Link>
             <Link href="/api-access">
               <Button variant="primary">Get API Access</Button>

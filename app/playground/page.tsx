@@ -270,7 +270,7 @@ function PlaygroundContent() {
                   <button onClick={handleSaveDraft} className="text-sm font-semibold text-[#FE4800] hover:underline">Save Draft</button>
                 </div>
                 <textarea value={output} onChange={(e) => setOutput(e.target.value)} rows={10} className="w-full rounded-xl border border-black/10 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FE4800]/20" />
-                <p className="mt-3 text-xs text-black/50">💡 Edit as needed. AI drafts are starting points, not final answers.</p>
+                <p className="mt-3 text-xs text-black/50">💡 Edit as needed. Drafts are starting points, not final answers.</p>
               </div>
             )}
 

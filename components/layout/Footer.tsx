@@ -76,7 +76,10 @@ export default function Footer() {
           <div>
             <h3 className="font-bold text-lg mb-4">KuasaTurbo</h3>
             <p className="text-sm text-slate-300">
-              AI Microservices untuk Malaysian Business
+              Microservices untuk Malaysian Business
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              Certified by Qontrek
             </p>
           </div>
         </div>

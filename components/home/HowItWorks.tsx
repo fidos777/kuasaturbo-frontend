@@ -4,7 +4,7 @@ export default function HowItWorks() {
   const steps = [
     { n: "1", title: "Pilih kerja", desc: "Ops / Sales / Creative — ikut apa yang kau nak settle." },
     { n: "2", title: "Isi konteks", desc: "Letak info minimum je. Lagi jelas, lagi padu output." },
-    { n: "3", title: "AI draft siap", desc: "Dapat draft yang boleh terus copy-paste, edit sikit, jalan." },
+    { n: "3", title: "Draft siap", desc: "Dapat draft yang boleh terus copy-paste, edit sikit, jalan." },
   ];
 
   return (
