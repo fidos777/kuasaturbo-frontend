@@ -30,7 +30,7 @@ export default function Navbar() {
             {/* QPI Dashboard - HIDDEN (internal metrics) */}
             {/* PTE Dashboard - HIDDEN (moved to Qontrek domain) */}
             {/* PIL Editor - HIDDEN (internal development tool) */}
-            <Link href="/orchestrator" className="text-slate-700 hover:text-primary font-medium">
+            <Link href="/playground/orchestrator" className="text-slate-700 hover:text-primary font-medium">
               Orchestrator
             </Link>
             <Link href="/proof-logs" className="text-slate-700 hover:text-primary">

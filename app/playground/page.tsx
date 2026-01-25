@@ -214,7 +214,7 @@ function PlaygroundContent() {
     <div className="min-h-screen bg-gradient-to-b from-white to-black/[0.02]">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black">AI Playground</h1>
+          <h1 className="text-3xl font-bold text-black">Playground</h1>
           <p className="mt-2 text-black/60">Pilih kerja, isi konteks, dapat draft. Simple.</p>
         </div>
 
@@ -275,7 +275,7 @@ function PlaygroundContent() {
             )}
 
             <div className="rounded-xl bg-black/[0.02] p-4 text-xs text-black/60">
-              <strong>Nota:</strong> Output ini adalah draft sahaja. Sentiasa review sebelum guna. AI boleh buat kesilapan — keputusan akhir adalah tanggungjawab anda.
+              <strong>Nota:</strong> Output ini adalah draft sahaja. Sentiasa review sebelum guna. Sistem boleh buat kesilapan — keputusan akhir adalah tanggungjawab anda.
             </div>
           </div>
         </div>
