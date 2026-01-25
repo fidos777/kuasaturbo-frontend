@@ -61,6 +61,9 @@ interface WorkflowState {
   updatePublishDeclarations: (declarations: Partial<PublishDeclarations>) => void;
   publishWorkflow: (name: string, description: string, category: string, visibility: 'public' | 'private' | 'unlisted') => void;
 
+  // Actions - Human Approval Gate (Day-1)
+  setApproval: (approved: boolean) => void;
+
   // Actions - Reset
   reset: () => void;
 }
@@ -314,7 +317,21 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   // Simulation
   runSimulation: async (): Promise<SimulationResult> => {
-    const { nodes, connections } = get();
+    const { nodes, connections, currentWorkflow } = get();
+
+    // Day-1 Approval Gate: Block execution unless approved
+    if (!currentWorkflow?.isApproved) {
+      console.warn('[BLOCKED] Workflow not approved by human. Execution denied.');
+      return {
+        steps: [],
+        totalSteps: 0,
+        passedSteps: 0,
+        totalMockCost: 0,
+        totalMockTime: 0,
+        estimatedSuccessRate: 0,
+      };
+    }
+
     set({ isSimulating: true });
 
     // Sort nodes by connection order (topological sort simplified)
@@ -459,6 +476,31 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       currentWorkflow: proposedWorkflow,
       savedWorkflows: newSavedWorkflows,
     });
+  },
+
+  // Human Approval Gate (Day-1 Implementation)
+  setApproval: (approved: boolean) => {
+    const { currentWorkflow, savedWorkflows } = get();
+    if (!currentWorkflow) return;
+
+    const updatedWorkflow = {
+      ...currentWorkflow,
+      isApproved: approved,
+      approvedAt: approved ? new Date().toISOString() : undefined,
+      approvedBy: approved ? 'human (simulated)' : undefined,
+    };
+
+    // Update in saved workflows as well
+    const newSavedWorkflows = savedWorkflows.map(wf =>
+      wf.id === currentWorkflow.id ? updatedWorkflow : wf
+    );
+
+    set({
+      currentWorkflow: updatedWorkflow,
+      savedWorkflows: newSavedWorkflows,
+    });
+
+    console.log(`[APPROVAL] Workflow ${approved ? 'APPROVED' : 'REVOKED'} by human at ${updatedWorkflow.approvedAt}`);
   },
 
   // Reset

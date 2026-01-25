@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, X, RotateCcw, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle, Zap, Shield } from 'lucide-react';
+import { Play, X, RotateCcw, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle, Zap, Shield, ShieldAlert } from 'lucide-react';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { SimulationResult, SimulationStep } from '@/types/orchestrator';
 
@@ -29,11 +29,15 @@ interface SimulationModeProps {
 export default function SimulationMode({ isOpen, onClose, onProceedToPublish }: SimulationModeProps) {
   const {
     nodes,
+    currentWorkflow,
     simulationResult,
     isSimulating,
     runSimulation,
     resetSimulation,
   } = useWorkflowStore();
+
+  // Day-1: Check if workflow is approved
+  const isApproved = currentWorkflow?.isApproved ?? false;
 
   const [hasRun, setHasRun] = useState(false);
   const [testMode, setTestMode] = useState<SimulationTestMode>('standard');
@@ -94,7 +98,28 @@ export default function SimulationMode({ isOpen, onClose, onProceedToPublish }: 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {nodes.length === 0 ? (
+          {/* Show blocked state if not certified - Design Constitution compliant */}
+          {!isApproved ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-error/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShieldAlert size={40} className="text-error" />
+              </div>
+              <h3 className="text-xl font-bold text-error mb-3">
+                ❌ This workflow cannot run until certified.
+              </h3>
+              <p className="text-gray-400 max-w-md mx-auto mb-6">
+                Human certification is required before any execution can happen.
+              </p>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 max-w-md mx-auto text-left">
+                <p className="text-sm text-gray-300 mb-2 font-medium">To certify this workflow:</p>
+                <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
+                  <li>Click <span className="text-action-primary">"Submit for Certification"</span> button</li>
+                  <li>Complete the certification checklist</li>
+                  <li>Check "I certify this workflow for execution"</li>
+                </ol>
+              </div>
+            </div>
+          ) : nodes.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <p>No tasks in workflow. Add tasks before running simulation.</p>
             </div>

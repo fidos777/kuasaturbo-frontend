@@ -5,6 +5,8 @@ import { X, AlertTriangle, Check, Globe, Lock, Link as LinkIcon, Send, TrendingD
 import { useWorkflowStore } from '@/store/workflowStore';
 import { TASK_CATEGORIES, getTaskById } from '../data/tasks';
 import { QONTREK_TAGLINES } from '@/types/orchestrator';
+import ApprovalModal from './ApprovalModal';
+import CostCeilingModal, { COST_CEILING_RM } from './CostCeilingModal';
 
 interface PublishFlowProps {
   isOpen: boolean;
@@ -30,8 +32,13 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
   );
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [showCostCeilingModal, setShowCostCeilingModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
 
   const costBreakdown = calculateCostBreakdown();
+
+  // Day-3: Check if cost exceeds ceiling
+  const isOverCeiling = costBreakdown.subtotal > COST_CEILING_RM;
 
   // Calculate estimated success rate
   const estimatedSuccessRate = useMemo(() => {
@@ -45,9 +52,28 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
 
   const allDeclarationsAccepted = Object.values(publishDeclarations).every(v => v);
 
+  // Day-3: Check cost ceiling, then Day-1: Open Approval Modal
   const handlePublish = async () => {
     if (!allDeclarationsAccepted) return;
 
+    // Day-3: If over ceiling, show warning first
+    if (isOverCeiling) {
+      setShowCostCeilingModal(true);
+      return;
+    }
+
+    // Otherwise, go directly to approval modal
+    setShowApprovalModal(true);
+  };
+
+  // Day-3: Called when user continues past cost warning
+  const handleCostCeilingContinue = () => {
+    setShowCostCeilingModal(false);
+    setShowApprovalModal(true);
+  };
+
+  // Called after human approves in modal
+  const handleApprovalConfirmed = async () => {
     setIsPublishing(true);
     try {
       publishWorkflow(name, description, category, visibility);
@@ -381,6 +407,22 @@ export default function PublishFlow({ isOpen, onClose, onPublishSuccess }: Publi
           </div>
         </div>
       </div>
+
+      {/* Day-3: Cost Ceiling Warning Modal */}
+      <CostCeilingModal
+        isOpen={showCostCeilingModal}
+        onClose={() => setShowCostCeilingModal(false)}
+        onContinue={handleCostCeilingContinue}
+        totalCost={costBreakdown.subtotal}
+      />
+
+      {/* Day-1: Human Approval Gate Modal */}
+      <ApprovalModal
+        isOpen={showApprovalModal}
+        onClose={() => setShowApprovalModal(false)}
+        onApproved={handleApprovalConfirmed}
+        workflowName={name}
+      />
     </div>
   );
 }

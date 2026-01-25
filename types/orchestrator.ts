@@ -157,6 +157,10 @@ export interface Workflow {
   proposalId?: string;          // Certification proposal reference
   simulationTrace?: string;     // Invariant 7: Simulation evidence (Phase 9)
   verificationProof?: string;   // Invariant 6: Mathematical proof (Phase 9)
+  // Human Approval Gate (Day-1 Implementation)
+  isApproved?: boolean;         // Human approval received
+  approvedAt?: string;          // ISO8601 timestamp
+  approvedBy?: string;          // Who approved
 }
 
 export interface WorkflowStats {
