@@ -79,7 +79,7 @@ export default function Footer() {
               Microservices untuk Malaysian Business
             </p>
             <p className="text-xs text-slate-400 mt-2">
-              Certified by Qontrek
+              Qontrek Ready
             </p>
           </div>
         </div>

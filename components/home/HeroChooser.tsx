@@ -51,7 +51,7 @@ export default function HeroChooser() {
             <Pill>Ops-first</Pill>
             <Pill>Harga ikut kerja</Pill>
             <Pill>
-              <span className="text-[#0B1B3A] font-semibold">Certified by Qontrek</span>
+              <span className="text-[#0B1B3A] font-semibold">Qontrek Ready</span>
             </Pill>
           </div>
 

@@ -134,7 +134,7 @@ const BADGE_CONFIG: Record<TrustTier, {
     bgColor: 'bg-[#0B1B3A]',      // Navy - authority
     textColor: 'text-white',
     borderColor: 'border-[#1E3A5F]',
-    defaultLabel: 'Certified by Qontrek',
+    defaultLabel: 'Qontrek Ready',
     isLegal: true,
   },
   promoted: {

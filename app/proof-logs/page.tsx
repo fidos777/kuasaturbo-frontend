@@ -84,7 +84,7 @@ export default function ProofLogsPage() {
 
           <div className="px-6 py-4 border-t border-black/5 bg-black/[0.02]">
             <p className="text-xs text-black/50 text-center">
-              Certified by Qontrek — Human decides. System records.
+              Powered by KuasaTurbo — Human decides. System records.
             </p>
           </div>
         </div>

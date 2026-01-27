@@ -23,7 +23,7 @@ const config: Config = {
         },
         // Trust tier badge colors (per Design Constitution)
         badge: {
-          certified: "#0B1B3A",  // Navy - "Certified by Qontrek"
+          certified: "#0B1B3A",  // Navy - "Qontrek Ready"
           promoted: "#0B1B3A",   // Navy - "Promoted for scale"
           rejected: "#EF4444",   // Red - rejection only
           underReview: "#F59E0B", // Amber - pending states
