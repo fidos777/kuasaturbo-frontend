@@ -11,8 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Demo freeze not yet implemented
+      - name: Verify demo freeze tag exists
         run: |
-          echo "Demo freeze guard stub"
-          exit 1
+          git fetch --tags
+
+          if git tag | grep -q "v5-demo-ready"; then
+            echo "✅ Demo freeze satisfied — tag present"
+            exit 0
+          else
+            echo "❌ Demo freeze active — missing v5-demo-ready tag"
+            exit 1
+          fi
 
